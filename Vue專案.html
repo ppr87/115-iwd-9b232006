@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#15173d">
+<title>每日待辦清單｜Vue 3</title>
+<style>
+:root{--bg:#f4f6fb;--panel:#fff;--text:#171936;--muted:#72758f;--line:#e6e8f1;--accent:#5b5fef;--accent2:#00c99a;--soft:#f0f1ff;--danger:#c93f52;--shadow:0 18px 50px rgba(27,32,78,.09)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Microsoft JhengHei",sans-serif;transition:background .2s,color .2s}
+body.dark{--bg:#111326;--panel:#1b1e38;--text:#f1f2ff;--muted:#a4a8c4;--line:#343854;--soft:#292d51;--shadow:0 18px 50px rgba(0,0,0,.22);--accent:#9295ff}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:var(--accent);color:white;font-weight:650;transition:transform .15s,opacity .15s}button:hover{opacity:.9;transform:translateY(-1px)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #00c99a;outline-offset:2px}.secondary{background:var(--soft);color:var(--text)}.danger{background:#fff0f2;color:var(--danger)}body.dark .danger{background:#432635;color:#ff9eac}.small{padding:7px 10px;font-size:14px}
+.wrap{max-width:1080px;margin:38px auto;padding:0 20px 40px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:var(--accent);display:grid;place-items:center;color:white;font-size:24px}.eyebrow{font-size:13px;color:var(--muted);letter-spacing:.08em}.topbar h1{font-size:clamp(24px,4vw,34px);line-height:1.2;margin:2px 0}.top-actions{display:flex;gap:8px;flex-wrap:wrap}.hero{background:linear-gradient(125deg,#171a42,#30366e);color:white;border-radius:24px;padding:28px 30px;margin-bottom:22px;position:relative;overflow:hidden}.hero:after{content:"✓";position:absolute;right:30px;top:-35px;font-size:190px;color:rgba(255,255,255,.06);font-weight:900}.hero p{margin:0;color:#c8ccef}.hero h2{font-size:clamp(23px,3vw,31px);margin:0 0 5px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}.stat{padding:17px 20px}.stat span{color:var(--muted);font-size:14px}.stat strong{display:block;font-size:27px;margin-top:2px}.progress-row{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin:15px 0 8px}.progress{height:10px;border-radius:20px;background:rgba(255,255,255,.18);overflow:hidden}.progress>div{height:100%;background:var(--accent2);border-radius:20px;transition:width .25s}.panel{padding:22px;margin-bottom:18px}.panel h2{font-size:19px;margin:0 0 15px}.form-grid{display:grid;grid-template-columns:minmax(180px,2fr) minmax(125px,1fr) minmax(125px,1fr) minmax(125px,1fr) auto;gap:10px;align-items:end}.field label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}.field input,.field select,.searchbox{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--panel);color:var(--text)}.filters{display:grid;grid-template-columns:minmax(180px,1.5fr) repeat(2,minmax(140px,1fr));gap:10px;margin-bottom:15px}.searchbox{height:46px}.list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px}.list-head h2{margin:0}.task-list{display:grid;gap:10px}.task{display:flex;align-items:flex-start;gap:12px;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.task input[type=checkbox]{width:20px;height:20px;margin-top:4px;accent-color:var(--accent);flex-shrink:0}.task-main{flex:1;min-width:0}.task-title{font-weight:700;overflow-wrap:anywhere}.task-title.done{text-decoration:line-through;color:var(--muted);font-weight:500}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--muted)}.tag{padding:2px 8px;border-radius:99px;background:var(--soft)}.priority-high{background:#ffe6e9;color:#b4233b}.priority-medium{background:#fff1d7;color:#946200}.priority-low{background:#dff8ef;color:#087b5a}body.dark .priority-high{background:#542635;color:#ffb2bd}body.dark .priority-medium{background:#4a3b24;color:#ffd98b}body.dark .priority-low{background:#183f38;color:#83e4c7}.task-actions{display:flex;gap:5px;flex-shrink:0}.empty{text-align:center;padding:35px 12px;color:var(--muted)}.empty .emoji{font-size:35px}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}.notice{font-size:12px;color:var(--muted);margin-top:12px}.hidden{display:none!important}
+@media(max-width:800px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .wide{grid-column:1/-1}.filters{grid-template-columns:1fr 1fr}.filters .wide{grid-column:1/-1}}
+@media(max-width:540px){.wrap{margin:18px auto;padding:0 12px 25px}.hero{padding:22px}.hero:after{right:8px}.stats{gap:8px}.stat{padding:13px}.stat strong{font-size:22px}.panel{padding:16px}.form-grid,.filters{grid-template-columns:1fr}.form-grid .wide,.filters .wide{grid-column:auto}.topbar{align-items:flex-start}.topbar h1{font-size:23px}.top-actions{justify-content:flex-end}.task{padding:12px}.task-actions{flex-direction:column}.task-actions button{padding:6px 8px}}
+</style>
+</head>
+<body>
+<div id="app" v-cloak>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand"><div class="logo">✓</div><div><div class="eyebrow">MY DAILY PLANNER</div><h1>每日待辦清單</h1></div></div>
+      <div class="top-actions">
+        <button class="secondary" @click="toggleTheme" :aria-label="isDark ? '切換亮色模式' : '切換深色模式'">{{ isDark ? '☀️ 亮色模式' : '🌙 深色模式' }}</button>
+        <button class="secondary" @click="exportCSV">⇩ 匯出紀錄</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h2>把今天的每一步，變成完成的進度。</h2>
+      <p>安排優先順序、追蹤截止日期，讓事情一件一件完成。</p>
+      <div class="progress-row"><span>今日任務完成進度</span><strong>{{ progress }}%</strong></div>
+      <div class="progress"><div :style="{width: progress + '%'}"></div></div>
+    </section>
+
+    <section class="stats">
+      <div class="stat"><span>全部任務</span><strong>{{ items.length }}</strong></div>
+      <div class="stat"><span>尚未完成</span><strong>{{ remaining }}</strong></div>
+      <div class="stat"><span>已完成</span><strong>{{ completed }}</strong></div>
+    </section>
+
+    <section class="panel">
+      <h2>{{ editingId === null ? '✦ 新增一項任務' : '✎ 編輯任務' }}</h2>
+      <form @submit.prevent="saveTask">
+        <div class="form-grid">
+          <div class="field wide"><label for="taskText">任務名稱 *</label><input id="taskText" v-model.trim="draft.text" maxlength="120" placeholder="例如：完成網頁設計作業" required></div>
+          <div class="field"><label for="taskCategory">分類</label><select id="taskCategory" v-model="draft.category"><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select></div>
+          <div class="field"><label for="taskPriority">優先程度</label><select id="taskPriority" v-model="draft.priority"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></div>
+          <div class="field"><label for="taskDate">截止日期</label><input id="taskDate" type="date" v-model="draft.dueDate"></div>
+          <div class="field"><label>&nbsp;</label><button type="submit" style="width:100%">{{ editingId === null ? '＋ 新增任務' : '儲存修改' }}</button></div>
+        </div>
+        <button v-if="editingId !== null" type="button" class="secondary small" @click="cancelEdit">取消編輯</button>
+      </form>
+      <p class="notice">資料會自動保存在這個瀏覽器中；清除瀏覽器資料或換裝置時不會自動同步。</p>
+    </section>
+
+    <section class="panel">
+      <div class="list-head"><h2>☷ 我的任務</h2><button class="secondary small" @click="clearCompleted" :disabled="completed===0">清除已完成</button></div>
+      <div class="filters">
+        <input class="searchbox wide" v-model.trim="keyword" placeholder="⌕ 搜尋任務名稱或分類…" aria-label="搜尋任務">
+        <select class="searchbox" v-model="filterCategory" aria-label="依分類篩選"><option value="全部分類">全部分類</option><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select>
+        <select class="searchbox" v-model="filterStatus" aria-label="依狀態篩選"><option value="全部">全部狀態</option><option value="未完成">未完成</option><option value="已完成">已完成</option><option value="已逾期">已逾期</option></select>
+      </div>
+      <div v-if="filteredItems.length" class="task-list">
+        <article class="task" v-for="item in filteredItems" :key="item.id">
+          <input type="checkbox" v-model="item.done" :aria-label="'標記 '+item.text+' 完成'">
+          <div class="task-main">
+            <div class="task-title" :class="{done:item.done}">{{ item.text }}</div>
+            <div class="meta">
+              <span class="tag">{{ item.category }}</span>
+              <span class="tag" :class="'priority-'+item.priority">{{ priorityLabel(item.priority) }}優先</span>
+              <span v-if="item.dueDate" class="tag" :style="{color: isOverdue(item) ? 'var(--danger)' : ''}">{{ isOverdue(item) ? '⚠ 已逾期 · ' : '截止 · ' }}{{ item.dueDate }}</span>
+              <span class="tag" v-if="item.done">✓ 已完成</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="secondary small" @click="startEdit(item)" :aria-label="'編輯 '+item.text">編輯</button>
+            <button class="danger small" @click="removeTask(item.id)" :aria-label="'刪除 '+item.text">刪除</button>
+          </div>
+        </article>
+      </div>
+      <div v-else class="empty"><div class="emoji">🗒️</div><strong>目前沒有符合條件的任務</strong><div>試著新增任務，或調整搜尋與篩選條件。</div></div>
+    </section>
+    <div class="footer">每日待辦清單 · 使用 Vue 3 製作 · 你的計畫，由你掌握</div>
+  </div>
+</div>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+const { createApp, ref, computed, watch } = Vue;
+createApp({
+  setup() {
+    const STORAGE_KEY = 'daily-planner-vue3-v1';
+    const categories = ['課業','生活','工作','健康','其他'];
+    const today = new Date().toISOString().slice(0,10);
+    const initial = [
+      {id:1,text:'完成網頁設計作業',done:false,category:'課業',priority:'high',dueDate:today},
+      {id:2,text:'整理明天要用的資料',done:false,category:'生活',priority:'medium',dueDate:''},
+      {id:3,text:'散步或伸展 15 分鐘',done:true,category:'健康',priority:'low',dueDate:''}
+    ];
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
+    const items = ref(Array.isArray(saved?.items) ? saved.items : initial);
+    const isDark = ref(saved?.isDark === true);
+    const newCategory = ref('');
+    const draft = ref({text:'',category:'課業',priority:'medium',dueDate:''});
+    const editingId = ref(null);
+    const keyword = ref('');
+    const filterCategory = ref('全部分類');
+    const filterStatus = ref('全部');
+    const completed = computed(() => items.value.filter(x => x.done).length);
+    const remaining = computed(() => items.value.length - completed.value);
+    const progress = computed(() => items.value.length ? Math.round(completed.value / items.value.length * 100) : 0);
+    const filteredItems = computed(() => {
+      const q = keyword.value.toLocaleLowerCase();
+      return items.value.filter(x => {
+        const matchText = !q || x.text.toLocaleLowerCase().includes(q) || x.category.toLocaleLowerCase().includes(q);
+        const matchCategory = filterCategory.value === '全部分類' || x.category === filterCategory.value;
+        const matchStatus = filterStatus.value === '全部' ||
+          (filterStatus.value === '未完成' && !x.done) ||
+          (filterStatus.value === '已完成' && x.done) ||
+          (filterStatus.value === '已逾期' && isOverdue(x));
+        return matchText && matchCategory && matchStatus;
+      }).sort((a,b) => Number(a.done)-Number(b.done) || ({high:0,medium:1,low:2}[a.priority]-{high:0,medium:1,low:2}[b.priority]));
+    });
+    watch([items,isDark], () => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({items:items.value,isDark:isDark.value})); } catch(e) {}
+      document.body.classList.toggle('dark', isDark.value);
+    }, {deep:true,immediate:true});
+    function saveTask() {
+      const text = draft.value.text.trim();
+      if (!text) return;
+      if (editingId.value !== null) {
+        const item = items.value.find(x => x.id === editingId.value);
+        if (item) Object.assign(item, {...draft.value, text});
+      } else {
+        items.value.unshift({id:Date.now(),...draft.value,text,done:false});
+      }
+      cancelEdit();
+    }
+    function startEdit(item) {
+      editingId.value = item.id;
+      draft.value = {text:item.text,category:item.category,priority:item.priority,dueDate:item.dueDate || ''};
+      document.getElementById('taskText').focus();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function cancelEdit() {
+      editingId.value = null;
+      draft.value = {text:'',category:'課業',priority:'medium',dueDate:''};
+    }
+    function removeTask(id) {
+      const item = items.value.find(x => x.id === id);
+      if (item && confirm('確定要刪除「' + item.text + '」嗎？')) {
+        items.value = items.value.filter(x => x.id !== id);
+        if (editingId.value === id) cancelEdit();
+      }
+    }
+    function clearCompleted() {
+      if (completed.value && confirm('確定清除所有已完成的任務嗎？')) items.value = items.value.filter(x => !x.done);
+    }
+    function toggleTheme() { isDark.value = !isDark.value; }
+    function isOverdue(item) { return !item.done && !!item.dueDate && item.dueDate < new Date().toISOString().slice(0,10); }
+    function priorityLabel(p) { return ({high:'高',medium:'中',low:'低'})[p] || '中'; }
+    function exportCSV() {
+      const escape = value => '"' + String(value ?? '').replace(/"/g,'""') + '"';
+      const rows = [['任務名稱','完成狀態','分類','優先程度','截止日期'], ...items.value.map(x => [x.text,x.done?'已完成':'未完成',x.category,priorityLabel(x.priority),x.dueDate || ''])];
+      const csv = '\uFEFF' + rows.map(row => row.map(escape).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+      const a = document.createElement('a'); a.href = url; a.download = '每日待辦清單.csv'; a.click(); URL.revokeObjectURL(url);
+    }
+    return {items,categories,draft,editingId,keyword,filterCategory,filterStatus,completed,remaining,progress,filteredItems,isDark,saveTask,startEdit,cancelEdit,removeTask,clearCompleted,toggleTheme,isOverdue,priorityLabel,exportCSV};
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
