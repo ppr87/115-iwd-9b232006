@@ -157,6 +157,17 @@ tbody tr:hover{background:#fafbff}
 @media(max-width:850px){.two-cols{grid-template-columns:1fr}.inline-form{grid-template-columns:repeat(2,minmax(0,1fr))}.cal-day{min-height:65px;padding:6px}.cal-day .daily{font-size:10px}.stat-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.inline-form{grid-template-columns:1fr}.cal-weekdays,.cal-grid{gap:3px}.cal-day{min-height:60px;padding:4px;border-radius:7px}.cal-day .daily{font-size:9px}.pie{width:185px;height:185px}.nav-btn{padding:8px 9px}}
 
+
+/* 第四版：公開匯率 API（保留既有樣式與功能） */
+.fx-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.fx-card{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.fx-card .fx-code{font-size:13px;color:#6b7280;font-weight:700}
+.fx-card strong{display:block;margin:7px 0;font-size:22px;overflow-wrap:anywhere}
+.fx-status{font-size:13px;color:#6b7280;margin:8px 0}
+.fx-status.fx-error{color:#d94646}
+.dark .fx-card{background:#1c2941}
+@media(max-width:760px){.fx-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px){.fx-cards{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 </head>
@@ -213,6 +224,20 @@ tbody tr:hover{background:#fafbff}
       </div>
       <div id="recentList" class="record-list"></div>
       <div id="recentEmpty" class="empty hidden">目前還沒有任何記帳紀錄。</div>
+    </div>
+    <div class="panel" id="exchangePanel">
+      <div class="top-row">
+        <div><h2>外幣參考匯率</h2><div class="section-subtitle">公開 API 串接 · 1 新台幣（TWD）可兌換的外幣金額</div></div>
+        <button class="btn secondary" id="refreshExchange" type="button">↻ 重新抓取匯率</button>
+      </div>
+      <div class="fx-cards" id="exchangeRates" aria-live="polite">
+        <div class="fx-card"><span class="fx-code">USD · 美元</span><strong>—</strong></div>
+        <div class="fx-card"><span class="fx-code">JPY · 日圓</span><strong>—</strong></div>
+        <div class="fx-card"><span class="fx-code">EUR · 歐元</span><strong>—</strong></div>
+        <div class="fx-card"><span class="fx-code">KRW · 韓元</span><strong>—</strong></div>
+      </div>
+      <p id="exchangeStatus" class="fx-status" role="status">尚未取得匯率資料。</p>
+      <p class="small-muted">匯率僅供參考，非即時交易報價。資料來源：<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Rates By Exchange Rate API</a>。</p>
     </div>
   </section>
 
@@ -688,6 +713,64 @@ const oldRenderHome=renderHome;renderHome=function(){oldRenderHome();refreshAll(
 const oldRenderRecords=renderRecords;renderRecords=function(){oldRenderRecords();if($('analytics'))refreshAll()};
 $('analysisMonth').value=currentMonth();$('recStart').value=currentMonth();
 syncCategories();wire();generateRecurring();renderHome();renderRecords();refreshAll();
+})();
+</script>
+
+
+<script>
+// 公開 API 串接：不需 API Key；以 fetch + async/await 取得每日參考匯率。
+(function(){
+  'use strict';
+  const API_URL='https://open.er-api.com/v6/latest/TWD';
+  const currencies=[['USD','美元'],['JPY','日圓'],['EUR','歐元'],['KRW','韓元']];
+  const button=document.getElementById('refreshExchange');
+  const list=document.getElementById('exchangeRates');
+  const status=document.getElementById('exchangeStatus');
+  let loading=false;
+  let lastRates=null;
+
+  async function loadExchangeRates(){
+    if(loading)return;
+    loading=true;
+    button.disabled=true;
+    button.textContent='抓取中…';
+    status.classList.remove('fx-error');
+    status.textContent='正在透過公開 API 取得匯率…';
+    try{
+      const response=await fetch(API_URL,{cache:'no-store'});
+      if(!response.ok)throw new Error('HTTP '+response.status);
+      const data=await response.json();
+      if(data.result!=='success'||data.base_code!=='TWD'||!data.rates)throw new Error('API 回傳格式不正確');
+      for(const [code] of currencies){
+        if(!Number.isFinite(data.rates[code])||data.rates[code]<=0)throw new Error('缺少 '+code+' 匯率');
+      }
+      lastRates=data.rates;
+      list.replaceChildren();
+      for(const [code,name] of currencies){
+        const card=document.createElement('div');card.className='fx-card';
+        const label=document.createElement('span');label.className='fx-code';label.textContent=code+' · '+name;
+        const value=document.createElement('strong');
+        value.textContent=new Intl.NumberFormat('zh-TW',{maximumFractionDigits:6}).format(lastRates[code]);
+        const foot=document.createElement('span');foot.className='small-muted';foot.textContent='1 TWD = '+code;
+        card.append(label,value,foot);list.append(card);
+      }
+      const updated=data.time_last_update_utc ? new Date(data.time_last_update_utc) : null;
+      const date=updated&&!Number.isNaN(updated.getTime())
+        ?updated.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+        :'未提供';
+      status.textContent='抓取成功｜資料更新時間：'+date+'（台灣時間）';
+    }catch(error){
+      status.classList.add('fx-error');
+      status.textContent='匯率抓取失敗，請確認網路連線後按「重新抓取匯率」。'+(lastRates?'（保留上次成功資料）':'');
+      console.error('匯率 API 失敗：',error);
+    }finally{
+      loading=false;
+      button.disabled=false;
+      button.textContent='↻ 重新抓取匯率';
+    }
+  }
+  button.addEventListener('click',loadExchangeRates);
+  loadExchangeRates(); // 首次開啟網頁自動抓取一次
 })();
 </script>
 
