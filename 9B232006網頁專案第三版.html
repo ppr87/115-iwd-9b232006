@@ -168,6 +168,28 @@ tbody tr:hover{background:#fafbff}
 .dark .fx-card{background:#1c2941}
 @media(max-width:760px){.fx-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px){.fx-cards{grid-template-columns:1fr}}
+
+/* 第五版 API 延伸：新增記帳與財務規劃共用匯率資料 */
+.fx-tool-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:end}
+.fx-tool-grid .field{margin-bottom:0}
+.fx-add-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fx-tool-result{margin:15px 0 10px;padding:17px;border-radius:12px;background:#f3f5ff;border:1px solid #e1e5ff}
+.fx-tool-result strong{display:block;font-size:24px;line-height:1.4;margin-top:5px;overflow-wrap:anywhere}
+.fx-tool-result p{margin:7px 0 0;font-size:13px;color:#6b7280}
+.fx-tool-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fx-plan-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.fx-plan-metric{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px;min-width:0}
+.fx-plan-metric span{display:block;font-size:12px;color:#6b7280;margin-bottom:6px}
+.fx-plan-metric strong{font-size:20px;overflow-wrap:anywhere}
+.fx-status-line{font-size:13px;color:#6b7280;margin-top:10px}
+.fx-status-line.fx-error{color:#d94646}
+.fx-plan-over{color:#d94646!important}
+.fx-note{font-size:12px;color:#6b7280;margin:8px 0 0}
+.dark .fx-tool-result{background:#26334f;border-color:#3c4b70}
+.dark .fx-tool-result p,.dark .fx-plan-metric span,.dark .fx-note,.dark .fx-status-line{color:#a8b3c7}
+.dark .fx-plan-metric{background:#1c2941}
+@media(max-width:850px){.fx-plan-metrics,.fx-tool-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.fx-plan-metrics,.fx-tool-grid,.fx-add-grid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 </head>
@@ -237,6 +259,10 @@ tbody tr:hover{background:#fafbff}
         <div class="fx-card"><span class="fx-code">KRW · 韓元</span><strong>—</strong></div>
       </div>
       <p id="exchangeStatus" class="fx-status" role="status">尚未取得匯率資料。</p>
+      <div class="fx-tool-actions" style="margin:13px 0">
+        <button type="button" class="btn secondary" onclick="startAdd()">使用匯率輔助記帳</button>
+        <button type="button" class="btn secondary" onclick="showPage('planning')">試算旅遊外幣預算</button>
+      </div>
       <p class="small-muted">匯率僅供參考，非即時交易報價。資料來源：<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Rates By Exchange Rate API</a>。</p>
     </div>
   </section>
@@ -292,6 +318,22 @@ tbody tr:hover{background:#fafbff}
     <div class="top-row">
       <h1 id="formTitle">新增記帳</h1>
       <button class="btn secondary" onclick="showPage('records')">返回紀錄</button>
+    </div>
+
+
+    <div class="panel" id="foreignRecordPanel">
+      <div class="top-row">
+        <div><h2>外幣消費換算</h2><p class="section-subtitle">海外購物或旅遊時，可先換算成新台幣，再填入記帳金額</p></div>
+        <button id="fxAddRefresh" class="btn secondary" type="button">↻ 重新抓取匯率</button>
+      </div>
+      <div class="fx-tool-grid fx-add-grid">
+        <div class="field"><label for="fxAddAmount">外幣金額</label><input type="number" id="fxAddAmount" min="0" step="any" value="100" placeholder="例如 100"></div>
+        <div class="field"><label for="fxAddCurrency">幣別</label><select id="fxAddCurrency"><option value="USD">USD 美元</option><option value="JPY">JPY 日圓</option><option value="EUR">EUR 歐元</option><option value="KRW">KRW 韓元</option><option value="GBP">GBP 英鎊</option><option value="HKD">HKD 港幣</option></select></div>
+      </div>
+      <div class="fx-tool-result" aria-live="polite"><span class="small-muted">估計折合新台幣</span><strong id="fxAddConverted">尚未取得匯率</strong><p id="fxAddRate">取得匯率後將自動計算</p></div>
+      <div class="fx-tool-actions"><button class="btn" id="fxUseRecord" type="button" disabled>使用換算結果填入下方金額</button><span class="small-muted">僅協助填入，不會自動新增記帳</span></div>
+      <p id="fxAddStatus" class="fx-status-line" role="status">等待匯率資料…</p>
+      <p class="fx-note">以公開參考匯率估算，不含信用卡海外手續費與銀行買賣價差。資料來源：<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Exchange Rate API</a></p>
     </div>
 
     <div class="panel">
@@ -350,6 +392,28 @@ tbody tr:hover{background:#fafbff}
   </section>
   <section id="planning" class="page">
     <div class="top-row"><div><h1>財務規劃</h1><p class="feature-hint">分類預算、固定收支和儲蓄目標</p></div></div>
+
+    <div class="panel" id="fxTravelPanel">
+      <div class="top-row">
+        <div><h2>旅遊外幣預算估算</h2><p class="section-subtitle">設定台幣旅費及預計外幣支出，快速了解可兌換金額與剩餘預算</p></div>
+        <button id="fxPlanRefresh" class="btn secondary" type="button">↻ 重新抓取匯率</button>
+      </div>
+      <div class="fx-tool-grid">
+        <div class="field"><label for="fxTravelBudget">旅遊預算（新台幣）</label><input id="fxTravelBudget" type="number" min="0" step="any" value="10000"></div>
+        <div class="field"><label for="fxTravelCurrency">預計使用幣別</label><select id="fxTravelCurrency"><option value="JPY">JPY 日圓</option><option value="USD">USD 美元</option><option value="EUR">EUR 歐元</option><option value="KRW">KRW 韓元</option><option value="GBP">GBP 英鎊</option><option value="HKD">HKD 港幣</option></select></div>
+        <div class="field"><label for="fxTravelSpend">預估支出（外幣）</label><input id="fxTravelSpend" type="number" min="0" step="any" value="20000"></div>
+      </div>
+      <div class="fx-plan-metrics" aria-live="polite">
+        <div class="fx-plan-metric"><span>預算約可兌換</span><strong id="fxTravelEquivalent">—</strong></div>
+        <div class="fx-plan-metric"><span>預估支出折合台幣</span><strong id="fxTravelExpense">—</strong></div>
+        <div class="fx-plan-metric"><span>預估剩餘台幣</span><strong id="fxTravelRemaining">—</strong></div>
+      </div>
+      <div class="progress-track" aria-label="旅遊預算使用比例"><div class="progress-fill" id="fxTravelProgress" style="width:0%"></div></div>
+      <p id="fxTravelPercent" class="fx-note">取得匯率後顯示預算使用情形</p>
+      <p id="fxPlanStatus" class="fx-status-line" role="status">等待匯率資料…</p>
+      <p class="fx-note">預算估算不會改動現有記帳資料。匯率為每日參考值；來源：<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">Exchange Rate API</a></p>
+    </div>
+
     <div class="panel"><h2>分類預算管理</h2><p class="feature-hint">每個分類設定單獨的月度上限，不影響首頁總預算</p><form id="categoryBudgetForm" class="inline-form"><div class="field"><label for="budgetCategory">支出分類</label><select id="budgetCategory" required></select></div><div class="field"><label for="budgetAmount">每月預算（元）</label><input id="budgetAmount" type="number" min="1" required placeholder="例如 3000"></div><div class="field"><label>&nbsp;</label><span class="small-muted">同分類可重新設定</span></div><button class="btn" type="submit">儲存預算</button></form><div id="categoryBudgetList" class="item-stack" style="margin-top:18px"></div></div>
     <div class="panel"><h2>固定收支</h2><p class="feature-hint">每月自動建立一次紀錄；開啟網頁時補上已到期且尚未建立的月份</p><form id="recurringForm" class="inline-form"><div class="field"><label for="recType">類型</label><select id="recType"><option value="expense">支出</option><option value="income">收入</option></select></div><div class="field"><label for="recCategory">分類</label><select id="recCategory" required></select></div><div class="field"><label for="recAmount">金額（元）</label><input id="recAmount" type="number" min="1" required></div><div class="field"><label for="recDay">每月日期（1～28）</label><input id="recDay" type="number" min="1" max="28" value="1" required></div><div class="field"><label for="recStart">開始月份</label><input id="recStart" type="month" required></div><div class="field"><label for="recNote">名稱／備註</label><input id="recNote" maxlength="80" placeholder="例如：房租、薪水" required></div><button class="btn" type="submit">新增固定收支</button></form><div id="recurringList" class="item-stack" style="margin-top:20px"></div></div>
     <div class="panel"><h2>儲蓄目標</h2><p class="feature-hint">建立目標並記錄累積進度；此數字不會自動計入收入或支出</p><form id="goalForm" class="inline-form"><div class="field"><label for="goalName">目標名稱</label><input id="goalName" maxlength="50" required placeholder="例如：旅遊基金"></div><div class="field"><label for="goalTarget">目標金額</label><input id="goalTarget" type="number" min="1" required></div><div class="field"><label for="goalSaved">目前存入</label><input id="goalSaved" type="number" min="0" value="0" required></div><button type="submit" class="btn">新增目標</button></form><div id="goalsList" class="item-stack" style="margin-top:18px"></div></div>
@@ -718,59 +782,134 @@ syncCategories();wire();generateRecurring();renderHome();renderRecords();refresh
 
 
 <script>
-// 公開 API 串接：不需 API Key；以 fetch + async/await 取得每日參考匯率。
+// 第五版 API：同一個免金鑰匯率 API，供首頁、新增記帳、財務規劃三處共用。
 (function(){
   'use strict';
   const API_URL='https://open.er-api.com/v6/latest/TWD';
+  const CACHE_KEY='moneyManagerFxCacheV1';
   const currencies=[['USD','美元'],['JPY','日圓'],['EUR','歐元'],['KRW','韓元']];
-  const button=document.getElementById('refreshExchange');
-  const list=document.getElementById('exchangeRates');
-  const status=document.getElementById('exchangeStatus');
+  const supported=['USD','JPY','EUR','KRW','GBP','HKD'];
+  const $=id=>document.getElementById(id);
+  const buttons=[$('refreshExchange'),$('fxAddRefresh'),$('fxPlanRefresh')];
+  const statusIds=['exchangeStatus','fxAddStatus','fxPlanStatus'];
+  const money=n=>new Intl.NumberFormat('zh-TW',{style:'currency',currency:'TWD',maximumFractionDigits:2}).format(n);
+  const foreign=(n,code)=>new Intl.NumberFormat('zh-TW',{maximumFractionDigits:code==='JPY'||code==='KRW'?0:2}).format(n)+' '+code;
   let loading=false;
   let lastRates=null;
+  let updatedString='';
+  let savedFromCache=false;
 
+  function showStatuses(msg,isError=false){
+    statusIds.forEach(id=>{
+      const el=$(id);el.textContent=msg;
+      el.classList.toggle('fx-error',isError);
+    });
+  }
+  function validRates(rates){
+    return rates&&typeof rates==='object'&&supported.every(code=>typeof rates[code]==='number'&&Number.isFinite(rates[code])&&rates[code]>0);
+  }
+  function displayTime(utc){
+    const d=utc?new Date(utc):null;
+    return d&&!Number.isNaN(d.getTime())
+      ?d.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+      :'未提供';
+  }
+  function renderRateCards(){
+    if(!lastRates)return;
+    const list=$('exchangeRates');list.replaceChildren();
+    for(const [code,name] of currencies){
+      const card=document.createElement('div');card.className='fx-card';
+      const label=document.createElement('span');label.className='fx-code';label.textContent=code+' · '+name;
+      const value=document.createElement('strong');
+      value.textContent=new Intl.NumberFormat('zh-TW',{maximumFractionDigits:6}).format(lastRates[code]);
+      const foot=document.createElement('span');foot.className='small-muted';foot.textContent='1 TWD = '+code;
+      card.append(label,value,foot);list.append(card);
+    }
+  }
+  function renderAddConverter(){
+    const raw=$('fxAddAmount').value;
+    const n=raw===''?NaN:Number(raw),code=$('fxAddCurrency').value;
+    const result=$('fxAddConverted'),info=$('fxAddRate'),use=$('fxUseRecord');
+    use.disabled=true;
+    if(!lastRates){result.textContent='尚未取得匯率';info.textContent='請連線抓取匯率後使用';return}
+    if(!Number.isFinite(n)||n<=0){result.textContent='請輸入大於 0 的金額';info.textContent='';return}
+    const converted=n/lastRates[code];
+    if(!Number.isFinite(converted)||converted<=0){result.textContent='無法換算';return}
+    result.textContent=money(converted);
+    info.textContent='1 '+code+' ≈ '+money(1/lastRates[code])+' · '+(savedFromCache?'上次成功抓取的匯率':'目前取得的參考匯率');
+    use.disabled=converted<0.5||Math.round(converted)>Number.MAX_SAFE_INTEGER;
+  }
+  function renderTravelPlanner(){
+    const b=$('fxTravelBudget').value,x=$('fxTravelSpend').value,code=$('fxTravelCurrency').value;
+    const budget=b===''?NaN:Number(b),spend=x===''?NaN:Number(x);
+    const equivalent=$('fxTravelEquivalent'),expense=$('fxTravelExpense'),remain=$('fxTravelRemaining');
+    const bar=$('fxTravelProgress'),percent=$('fxTravelPercent');
+    if(!lastRates){equivalent.textContent=expense.textContent=remain.textContent='—';bar.style.width='0%';percent.textContent='請先抓取匯率';return}
+    if(!Number.isFinite(budget)||budget<0||!Number.isFinite(spend)||spend<0){
+      equivalent.textContent=expense.textContent=remain.textContent='—';bar.style.width='0%';percent.textContent='請輸入 0 以上的預算與支出金額';return;
+    }
+    const rate=lastRates[code],cost=spend/rate,balance=budget-cost;
+    equivalent.textContent=foreign(budget*rate,code);
+    expense.textContent=money(cost);
+    remain.textContent=money(balance);
+    remain.classList.toggle('fx-plan-over',balance<0);
+    const pct=budget>0?cost/budget*100:(cost>0?100:0);
+    bar.style.width=Math.min(100,pct)+'%';bar.classList.toggle('over',cost>budget);
+    percent.textContent='預算使用 '+(budget>0?Math.round(pct)+'%':'—')+(cost>budget?'，預估超出 '+money(-balance):'');
+  }
+  function renderAll(){renderRateCards();renderAddConverter();renderTravelPlanner()}
+  function restoreCache(){
+    try{
+      const obj=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+      if(obj&&validRates(obj.rates)){
+        lastRates=obj.rates;updatedString=obj.time||'未提供';savedFromCache=true;
+        renderAll();showStatuses('顯示上次成功抓取的匯率｜資料更新：'+updatedString+'（台灣時間）；正在確認新資料…');
+      }
+    }catch(e){/* 快取可能已損壞，忽略並嘗試重新抓取 */}
+  }
   async function loadExchangeRates(){
     if(loading)return;
     loading=true;
-    button.disabled=true;
-    button.textContent='抓取中…';
-    status.classList.remove('fx-error');
-    status.textContent='正在透過公開 API 取得匯率…';
+    buttons.forEach(btn=>{btn.disabled=true;btn.textContent='抓取中…'});
+    showStatuses('正在透過公開 API 取得匯率…');
     try{
+      // 無金鑰，使用 fetch + async/await 取得 JSON；所有頁面共用這次回應。
       const response=await fetch(API_URL,{cache:'no-store'});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const data=await response.json();
-      if(data.result!=='success'||data.base_code!=='TWD'||!data.rates)throw new Error('API 回傳格式不正確');
-      for(const [code] of currencies){
-        if(!Number.isFinite(data.rates[code])||data.rates[code]<=0)throw new Error('缺少 '+code+' 匯率');
-      }
+      if(data.result!=='success'||data.base_code!=='TWD'||!validRates(data.rates))throw new Error('匯率資料格式不正確');
       lastRates=data.rates;
-      list.replaceChildren();
-      for(const [code,name] of currencies){
-        const card=document.createElement('div');card.className='fx-card';
-        const label=document.createElement('span');label.className='fx-code';label.textContent=code+' · '+name;
-        const value=document.createElement('strong');
-        value.textContent=new Intl.NumberFormat('zh-TW',{maximumFractionDigits:6}).format(lastRates[code]);
-        const foot=document.createElement('span');foot.className='small-muted';foot.textContent='1 TWD = '+code;
-        card.append(label,value,foot);list.append(card);
-      }
-      const updated=data.time_last_update_utc ? new Date(data.time_last_update_utc) : null;
-      const date=updated&&!Number.isNaN(updated.getTime())
-        ?updated.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
-        :'未提供';
-      status.textContent='抓取成功｜資料更新時間：'+date+'（台灣時間）';
+      updatedString=displayTime(data.time_last_update_utc);
+      savedFromCache=false;
+      try{localStorage.setItem(CACHE_KEY,JSON.stringify({rates:lastRates,time:updatedString}))}catch(e){/* 無法快取也不影響功能 */}
+      renderAll();
+      showStatuses('抓取成功｜資料更新時間：'+updatedString+'（台灣時間）');
     }catch(error){
-      status.classList.add('fx-error');
-      status.textContent='匯率抓取失敗，請確認網路連線後按「重新抓取匯率」。'+(lastRates?'（保留上次成功資料）':'');
+      // 即使本次抓取失敗，也不清除先前成功取得的資訊。
+      savedFromCache=!!lastRates;
+      renderAll();
+      showStatuses('匯率抓取失敗，請檢查網路或稍後按「重新抓取匯率」。'+(lastRates?'（目前顯示上次成功的資料）':''),true);
       console.error('匯率 API 失敗：',error);
     }finally{
       loading=false;
-      button.disabled=false;
-      button.textContent='↻ 重新抓取匯率';
+      buttons.forEach(btn=>{btn.disabled=false;btn.textContent='↻ 重新抓取匯率'});
     }
   }
-  button.addEventListener('click',loadExchangeRates);
-  loadExchangeRates(); // 首次開啟網頁自動抓取一次
+  buttons.forEach(btn=>btn.addEventListener('click',loadExchangeRates));
+  ['fxAddAmount','fxAddCurrency'].forEach(id=>$(id).addEventListener('input',renderAddConverter));
+  ['fxTravelBudget','fxTravelSpend','fxTravelCurrency'].forEach(id=>$(id).addEventListener('input',renderTravelPlanner));
+  $('fxUseRecord').addEventListener('click',()=>{
+    if(!lastRates)return;
+    const n=Number($('fxAddAmount').value),code=$('fxAddCurrency').value;
+    if($('fxAddAmount').value===''||!Number.isFinite(n)||n<=0)return;
+    const converted=Math.round(n/lastRates[code]);
+    if(converted<1||!Number.isSafeInteger(converted)){showToast('換算結果無法填入金額，請調整外幣數量');return}
+    $('amount').value=String(converted);
+    $('amountError').textContent='';
+    showToast('已將外幣換算結果填入下方記帳金額（台幣）');
+  });
+  restoreCache();
+  loadExchangeRates(); // 首次開啟網頁抓取一次，後續可在三處按鈕手動重新抓取
 })();
 </script>
 
